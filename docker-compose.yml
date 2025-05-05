@@ -1,5 +1,6 @@
 services:
   nextjs:
+    image: phamducbinh/nextjs-app:latest
     container_name: nextjs-app
     build:
       context: .
