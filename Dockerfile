@@ -1,23 +1,27 @@
-# Sử dụng image Node.js chính thức làm base image
-FROM node:20-alpine
+# ---------- STAGE 1: Build ----------
+    FROM node:20-alpine AS builder
 
-# Thiết lập thư mục làm việc
-WORKDIR /app
-
-# Sao chép package.json và package-lock.json
-COPY package*.json ./
-
-# Cài đặt dependencies
-RUN npm install
-
-# Sao chép toàn bộ mã nguồn
-COPY . .
-
-# Build ứng dụng Next.js
-RUN npm run build
-
-# Mở cổng mà Next.js sử dụng
-EXPOSE 3000
-
-# Lệnh để chạy ứng dụng
-CMD ["npm", "start"]
+    WORKDIR /app
+    
+    COPY package*.json ./
+    RUN npm install
+    
+    COPY . .
+    RUN npm run build
+    
+    # ---------- STAGE 2: Run ----------
+    FROM node:20-alpine
+    
+    WORKDIR /app
+    
+    # Chỉ copy phần cần thiết từ stage build
+    COPY --from=builder /app/package*.json ./
+    COPY --from=builder /app/.next .next
+    COPY --from=builder /app/public ./public
+    COPY --from=builder /app/node_modules ./node_modules
+    
+    ENV NODE_ENV=production
+    
+    EXPOSE 3000
+    CMD ["npm", "start"]
+    

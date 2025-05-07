@@ -1,6 +1,33 @@
+# Node modules cài ngoài container
 node_modules
+
+# Output build của Next.js
 .next
-npm-debug.log
-Dockerfile
+out
+
+# Lock files không cần thiết (nếu không dùng đúng trình quản lý)
+yarn.lock
+pnpm-lock.yaml
+
+# Logs và debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git và môi trường
 .git
 .gitignore
+.env
+.env.*
+
+# Dockerfile hoặc docker-compose có thể tùy chọn bỏ qua nếu build CI/CD không cần hết
+Dockerfile
+docker-compose.yml
+
+# MacOS, VSCode, IDE
+.DS_Store
+.vscode
+.idea
+
+# Test coverage
+coverage
