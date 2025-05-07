@@ -1,27 +1,84 @@
-name: Next Deployment
+name: Next.js CI/CD Pipeline
 
 on:
   push:
-    branches: [production]
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Deploy using ssh
-      uses: appleboy/ssh-action@master
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        password: ${{ secrets.PASSWORD }}
-        port: 22
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: Build and test Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        load: true
+        tags: phamducbinh171/nextjs-app:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run tests
+      run: |
+        docker run --rm phamducbinh171/nextjs-app:test npm test
+
+  deploy:
+    needs: build-and-test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: |
+          phamducbinh171/nextjs-app:latest
+          phamducbinh171/nextjs-app:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_PORT }}
         script: |
           cd /home/next-deploy-vps
           git fetch origin
-          git checkout production
+          git checkout master
           git pull
           npm install
           npm run build
-          pm2 reload next-demo
-            
-          
+          docker-compose pull
+          docker-compose up -d
