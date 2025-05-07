@@ -2,9 +2,9 @@ name: Next.js CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build-and-test:
@@ -102,7 +102,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd /home/next-deploy-vps
+            cd /home/development/dev/next-deploy-vps
+            git fetch origin
+            git pull origin master
             docker-compose pull
             docker-compose up -d --build # Use --build to ensure latest changes
             docker image prune -f # Clean up unused images to save space
